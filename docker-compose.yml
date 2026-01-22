@@ -1,0 +1,23 @@
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  producer:
+    build: .
+    command: [ "/app/producer" ]
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    command: [ "/app/worker" ]
+    depends_on:
+      - redis
+
+  reaper:
+    build: .
+    command: [ "/app/reaper" ]
+    depends_on:
+      - redis
