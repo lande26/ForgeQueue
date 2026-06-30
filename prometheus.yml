@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "forgequeue-api"
+    static_configs:
+      - targets: ["api:8080"]
+  - job_name: "forgequeue-worker"
+    static_configs:
+      - targets: ["worker:2112"]
+  - job_name: "forgequeue-reaper"
+    static_configs:
+      - targets: ["reaper:2113"]

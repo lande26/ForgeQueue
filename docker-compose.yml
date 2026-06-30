@@ -1,23 +1,63 @@
 services:
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
 
-  producer:
+  api:
     build: .
-    command: [ "/app/producer" ]
+    command: ["/app/api"]
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_ADDR=redis:6379
+      - HTTP_PORT=8081
     depends_on:
       - redis
 
   worker:
     build: .
-    command: [ "/app/worker" ]
+    command: ["/app/worker"]
+    environment:
+      - REDIS_ADDR=redis:6379
+      - WORKER_CONCURRENCY=5
+      - HEARTBEAT_INTERVAL=5s
+      - JOB_TIMEOUT=30s
+      - METRICS_PORT=2112
     depends_on:
       - redis
 
   reaper:
     build: .
-    command: [ "/app/reaper" ]
+    command: ["/app/reaper"]
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REAPER_INTERVAL=10s
+      - STALENESS_THRESHOLD=60s
+      - METRICS_PORT=2113
     depends_on:
       - redis
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - api
+      - worker
+      - reaper
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  redis-data:
